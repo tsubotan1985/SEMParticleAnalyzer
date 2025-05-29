@@ -181,7 +181,8 @@ def create_html_report(particles_df: pd.DataFrame,
                       stats_data: Dict[str, Dict[str, float]],
                       histogram_fig: go.Figure,
                       analysis_params: Dict[str, Any],
-                      language: str = "ja") -> str:
+                      language: str = "ja",
+                      detection_image: Optional[np.ndarray] = None) -> str:
     """
     HTMLレポートを作成
     
@@ -191,11 +192,14 @@ def create_html_report(particles_df: pd.DataFrame,
         histogram_fig: ヒストグラム図
         analysis_params: 解析パラメータ
         language: 言語設定
+        detection_image: 粒子検出結果画像（オプション）
         
     Returns:
         HTMLレポート文字列
     """
     from config.languages import get_text
+    import cv2
+    from PIL import Image
     
     # ヒストグラムをHTMLに変換
     histogram_html = histogram_fig.to_html(include_plotlyjs='cdn')
@@ -203,6 +207,33 @@ def create_html_report(particles_df: pd.DataFrame,
     # 統計テーブル
     stats_table = create_statistics_table(stats_data, language)
     stats_html = stats_table.to_html(index=False, escape=False)
+    
+    # 検出画像をBase64エンコード
+    detection_image_html = ""
+    if detection_image is not None:
+        # 画像をPIL Imageに変換
+        if len(detection_image.shape) == 3:
+            pil_image = Image.fromarray(cv2.cvtColor(detection_image, cv2.COLOR_BGR2RGB))
+        else:
+            pil_image = Image.fromarray(detection_image)
+        
+        # 画像をBase64エンコード
+        buffer = io.BytesIO()
+        pil_image.save(buffer, format='PNG')
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        detection_image_html = f'''
+        <div class="section">
+            <h2>{get_text('detection_results', language) if language == 'en' else '検出結果'}</h2>
+            <div style="text-align: center;">
+                <img src="data:image/png;base64,{img_base64}"
+                     style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;">
+                <p style="margin-top: 10px; font-style: italic;">
+                    {get_text('detected_particles_image', language) if language == 'en' else '検出された粒子（緑の輪郭線）'}
+                </p>
+            </div>
+        </div>
+        '''
     
     # 現在時刻
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -284,6 +315,8 @@ def create_html_report(particles_df: pd.DataFrame,
             <h2>{get_text('statistics', language)}</h2>
             {stats_html}
         </div>
+        
+        {detection_image_html}
         
         <div class="section">
             <h2>{get_text('histogram', language)}</h2>

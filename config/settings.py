@@ -102,6 +102,7 @@ def initialize_session_state():
             "min_area": DETECTION_CONFIG["min_area_default"],
             "max_area": DETECTION_CONFIG["max_area_default"],
             "min_circularity": DETECTION_CONFIG["circularity_default"],
+            "exclude_edge_particles": True,  # 画像端粒子除外をデフォルトで有効
         }
     
     # 検出結果

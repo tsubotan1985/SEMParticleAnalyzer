@@ -241,6 +241,16 @@ def render_detection_parameters(lang: str):
             image_area = st.session_state.original_image.shape[0] * st.session_state.original_image.shape[1]
             if max_area == image_area:
                 st.info(f"🔄 {get_text('auto_set_to_image_area', lang) if lang == 'en' else '画像面積に自動設定'}")
+    
+    # 画像端除外設定
+    st.markdown(f"**{get_text('edge_exclusion', lang) if lang == 'en' else '画像端除外'}**")
+    exclude_edge_particles = st.checkbox(
+        get_text("exclude_edge_particles", lang) if lang == 'en' else "画像端にかかる粒子を除外",
+        value=st.session_state.detection_params.get("exclude_edge_particles", True),
+        help=get_text("exclude_edge_help", lang) if lang == 'en' else "画像の4辺に接触している粒子を検出結果から除外します（正確な粒径測定のため推奨）",
+        key="exclude_edge_particles_checkbox"
+    )
+    st.session_state.detection_params["exclude_edge_particles"] = exclude_edge_particles
 
 def render_detection_results(image: np.ndarray, pixels_per_um: float, lang: str):
     """検出結果の表示"""
@@ -259,12 +269,34 @@ def render_detection_results(image: np.ndarray, pixels_per_um: float, lang: str)
     
     if detect_button:
         with st.spinner(f"{get_text('detecting', lang) if lang == 'en' else '検出中'}..."):
-            particles_data, detected_image = detect_particles(image, pixels_per_um)
+            particles_data, detected_image, detection_stats = detect_particles(image, pixels_per_um)
             
             if particles_data:
                 st.session_state.particles_data = particles_data
                 st.session_state.detected_image = detected_image
                 st.session_state.particle_count = len(particles_data)
+                st.session_state.detection_stats = detection_stats
+                
+                # 検出結果のサマリー表示
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(
+                        label=get_text("particles_detected", lang) if lang == 'en' else "検出粒子数",
+                        value=len(particles_data)
+                    )
+                with col2:
+                    if detection_stats.get("edge_excluded", 0) > 0:
+                        st.metric(
+                            label=get_text("edge_excluded", lang) if lang == 'en' else "画像端除外数",
+                            value=detection_stats["edge_excluded"]
+                        )
+                with col3:
+                    total_candidates = detection_stats.get("total_candidates", len(particles_data))
+                    if total_candidates > len(particles_data):
+                        st.metric(
+                            label=get_text("total_candidates", lang) if lang == 'en' else "総候補数",
+                            value=total_candidates
+                        )
                 
                 st.success(f"{len(particles_data)} {get_text('particles_detected', lang)}")
             else:
@@ -275,7 +307,7 @@ def render_detection_results(image: np.ndarray, pixels_per_um: float, lang: str)
         render_detection_visualization(lang)
         render_detection_statistics(lang)
 
-def detect_particles(image: np.ndarray, pixels_per_um: float) -> Tuple[List[Dict], Optional[np.ndarray]]:
+def detect_particles(image: np.ndarray, pixels_per_um: float) -> Tuple[List[Dict], Optional[np.ndarray], Dict]:
     """
     粒子検出を実行
     
@@ -284,9 +316,18 @@ def detect_particles(image: np.ndarray, pixels_per_um: float) -> Tuple[List[Dict
         pixels_per_um: ピクセル/μm変換係数
         
     Returns:
-        (粒子データリスト, 検出結果画像)
+        (粒子データリスト, 検出結果画像, 検出統計)
     """
     params = st.session_state.detection_params
+    
+    # 統計情報を初期化
+    detection_stats = {
+        "total_candidates": 0,
+        "area_filtered": 0,
+        "circularity_filtered": 0,
+        "edge_excluded": 0,
+        "final_count": 0
+    }
     
     # ROIマスクを作成
     roi_mask = create_roi_mask(image, params["bottom_exclusion"])
@@ -326,10 +367,14 @@ def detect_particles(image: np.ndarray, pixels_per_um: float) -> Tuple[List[Dict
     particles_data = []
     valid_contours = []
     
+    # 総候補数を記録
+    detection_stats["total_candidates"] = len(contours)
+    
     for contour in contours:
         # 面積フィルタ
         area = cv2.contourArea(contour)
         if area < params["min_area"] or area > params["max_area"]:
+            detection_stats["area_filtered"] += 1
             continue
         
         # 円形度フィルタ
@@ -337,19 +382,54 @@ def detect_particles(image: np.ndarray, pixels_per_um: float) -> Tuple[List[Dict
         if perimeter > 0:
             circularity = 4 * np.pi * area / (perimeter ** 2)
             if circularity < params["min_circularity"]:
+                detection_stats["circularity_filtered"] += 1
                 continue
         else:
+            detection_stats["circularity_filtered"] += 1
             continue
+        
+        # 画像端除外チェック
+        if params.get("exclude_edge_particles", True):
+            if is_contour_touching_edge(contour, image.shape):
+                detection_stats["edge_excluded"] += 1
+                continue
         
         # 粒子特性を計算
         particle_props = calculate_particle_properties(contour, pixels_per_um)
         particles_data.append(particle_props)
         valid_contours.append(contour)
     
+    # 最終検出数を記録
+    detection_stats["final_count"] = len(particles_data)
+    
     # 検出結果画像を作成
     detected_image = create_detection_overlay(image, valid_contours)
     
-    return particles_data, detected_image
+    return particles_data, detected_image, detection_stats
+
+def is_contour_touching_edge(contour: np.ndarray, image_shape: Tuple[int, int]) -> bool:
+    """
+    輪郭が画像端に接触しているかチェック
+    
+    Args:
+        contour: 輪郭データ
+        image_shape: 画像サイズ (height, width)
+        
+    Returns:
+        画像端に接触している場合True
+    """
+    height, width = image_shape[:2]
+    
+    # 輪郭の境界ボックスを取得
+    x, y, w, h = cv2.boundingRect(contour)
+    
+    # 4辺のいずれかに接触しているかチェック
+    touching_left = x <= 0
+    touching_right = (x + w) >= width
+    touching_top = y <= 0
+    touching_bottom = (y + h) >= height
+    
+    return touching_left or touching_right or touching_top or touching_bottom
 
 def create_detection_overlay(image: np.ndarray, contours: List[np.ndarray]) -> np.ndarray:
     """

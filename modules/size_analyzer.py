@@ -384,8 +384,11 @@ def render_download_section(particles_df: pd.DataFrame, lang: str):
                     "min_circularity": st.session_state.get("detection_params", {}).get("min_circularity", "N/A")
                 }
                 
+                # 検出画像を取得
+                detection_image = st.session_state.get("detected_image")
+                
                 html_report = create_html_report(
-                    particles_df, stats_data, histogram_fig, analysis_params, lang
+                    particles_df, stats_data, histogram_fig, analysis_params, lang, detection_image
                 )
                 
                 st.download_button(

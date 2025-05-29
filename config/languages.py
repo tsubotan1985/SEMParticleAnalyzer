@@ -120,6 +120,13 @@ TRANSLATIONS = {
         "canvas_step4": "スケールを設定ボタンをクリック",
         "auto_set_to_image_area": "画像面積に自動設定",
         "image_area": "画像面積",
+        "edge_exclusion": "画像端除外",
+        "exclude_edge_particles": "画像端にかかる粒子を除外",
+        "exclude_edge_help": "画像の4辺に接触している粒子を検出結果から除外します（正確な粒径測定のため推奨）",
+        "edge_excluded": "画像端除外数",
+        "total_candidates": "総候補数",
+        "detection_results": "検出結果",
+        "detected_particles_image": "検出された粒子（緑の輪郭線）",
     },
     
     "en": {
@@ -232,6 +239,13 @@ TRANSLATIONS = {
         "canvas_step4": "Click the Set Scale button",
         "auto_set_to_image_area": "Auto-set to image area",
         "image_area": "Image Area",
+        "edge_exclusion": "Edge Exclusion",
+        "exclude_edge_particles": "Exclude particles touching image edges",
+        "exclude_edge_help": "Exclude particles touching the 4 edges of the image from detection results (recommended for accurate particle size measurement)",
+        "edge_excluded": "Edge Excluded",
+        "total_candidates": "Total Candidates",
+        "detection_results": "Detection Results",
+        "detected_particles_image": "Detected particles (green contours)",
     }
 }
 
