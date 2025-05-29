@@ -220,18 +220,18 @@ def render_histogram_comparison(original: np.ndarray, processed: np.ndarray, lan
         
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
         
-        # 元画像のヒストグラム
+        # 元画像のヒストグラム（英語表示のみ）
         ax1.hist(original.flatten(), bins=50, alpha=0.7, color='blue', edgecolor='black')
-        ax1.set_title(f"{get_text('original_image', lang) if lang == 'en' else '元画像'}")
-        ax1.set_xlabel(f"{get_text('intensity', lang) if lang == 'en' else '輝度値'}")
-        ax1.set_ylabel(f"{get_text('frequency', lang)}")
+        ax1.set_title("Original Image")
+        ax1.set_xlabel("Intensity")
+        ax1.set_ylabel("Frequency")
         ax1.grid(True, alpha=0.3)
         
-        # 処理後画像のヒストグラム
+        # 処理後画像のヒストグラム（英語表示のみ）
         ax2.hist(processed.flatten(), bins=50, alpha=0.7, color='red', edgecolor='black')
-        ax2.set_title(f"{get_text('processed_image', lang) if lang == 'en' else '処理後画像'}")
-        ax2.set_xlabel(f"{get_text('intensity', lang) if lang == 'en' else '輝度値'}")
-        ax2.set_ylabel(f"{get_text('frequency', lang)}")
+        ax2.set_title("Processed Image")
+        ax2.set_xlabel("Intensity")
+        ax2.set_ylabel("Frequency")
         ax2.grid(True, alpha=0.3)
         
         plt.tight_layout()
