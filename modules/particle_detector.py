@@ -218,16 +218,29 @@ def render_detection_parameters(lang: str):
         st.session_state.detection_params["min_circularity"] = min_circularity
     
     with col2:
+        # 画像が読み込まれている場合は画像面積を最大値として使用
+        if "original_image" in st.session_state and st.session_state.original_image is not None:
+            image_area = st.session_state.original_image.shape[0] * st.session_state.original_image.shape[1]
+            max_area_limit = max(DETECTION_CONFIG["max_area_range"][1], image_area)
+        else:
+            max_area_limit = DETECTION_CONFIG["max_area_range"][1]
+        
         # 最大面積
         max_area = st.number_input(
             get_text("max_area", lang),
             min_value=DETECTION_CONFIG["max_area_range"][0],
-            max_value=DETECTION_CONFIG["max_area_range"][1],
+            max_value=max_area_limit,
             value=st.session_state.detection_params["max_area"],
             step=100,
             key="max_area_input"
         )
         st.session_state.detection_params["max_area"] = max_area
+        
+        # 画像面積に基づく自動設定の説明
+        if "original_image" in st.session_state and st.session_state.original_image is not None:
+            image_area = st.session_state.original_image.shape[0] * st.session_state.original_image.shape[1]
+            if max_area == image_area:
+                st.info(f"🔄 {get_text('auto_set_to_image_area', lang) if lang == 'en' else '画像面積に自動設定'}")
 
 def render_detection_results(image: np.ndarray, pixels_per_um: float, lang: str):
     """検出結果の表示"""

@@ -46,6 +46,12 @@ def render_image_loader():
         
         if image is not None:
             st.session_state.original_image = image
+            
+            # 画像の面積を計算して最大面積に自動設定
+            image_area = image.shape[0] * image.shape[1]  # height × width
+            if "detection_params" in st.session_state:
+                st.session_state.detection_params["max_area"] = image_area
+            
             st.success(get_text("image_loaded", lang))
             
             # 画像表示セクション
@@ -73,6 +79,14 @@ def render_image_display(image: np.ndarray, lang: str):
             label=f"{get_text('image_size', lang) if lang == 'en' else '画像サイズ'}",
             value=f"{image.shape[1]} × {image.shape[0]}"
         )
+        
+        # 画像面積を表示
+        image_area = image.shape[0] * image.shape[1]
+        st.metric(
+            label=f"{get_text('image_area', lang) if lang == 'en' else '画像面積'}",
+            value=f"{image_area:,} px²"
+        )
+        
         st.metric(
             label=f"{get_text('data_type', lang) if lang == 'en' else 'データ型'}",
             value=str(image.dtype)

@@ -22,6 +22,10 @@ def main():
     # UI初期化
     initialize_ui()
     
+    # セッション状態初期化
+    from config.settings import initialize_session_state
+    initialize_session_state()
+    
     # 言語選択
     lang = render_language_selector()
     

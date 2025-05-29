@@ -118,6 +118,8 @@ TRANSLATIONS = {
         "canvas_step2": "画像上で既知の長さの線を描画",
         "canvas_step3": "実際の長さ（μm）を入力",
         "canvas_step4": "スケールを設定ボタンをクリック",
+        "auto_set_to_image_area": "画像面積に自動設定",
+        "image_area": "画像面積",
     },
     
     "en": {
@@ -228,6 +230,8 @@ TRANSLATIONS = {
         "canvas_step2": "Draw a line of known length on the image",
         "canvas_step3": "Enter the actual length (μm)",
         "canvas_step4": "Click the Set Scale button",
+        "auto_set_to_image_area": "Auto-set to image area",
+        "image_area": "Image Area",
     }
 }
 
