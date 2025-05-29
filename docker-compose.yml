@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  sem-particle-analyzer:
+    build: .
+    container_name: sem-particle-analyzer
+    ports:
+      - "8501:8501"
+    volumes:
+      # データの永続化（オプション）
+      - ./data:/app/data
+      # ログの永続化（オプション）
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 開発用サービス（オプション）
+  sem-particle-analyzer-dev:
+    build: .
+    container_name: sem-particle-analyzer-dev
+    ports:
+      - "8502:8501"
+    volumes:
+      # 開発時のホットリロード用
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
+    command: ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--server.fileWatcherType=poll", "--browser.gatherUsageStats=false"]
+    profiles:
+      - dev
+    restart: unless-stopped
+
+networks:
+  default:
+    name: sem-analyzer-network
